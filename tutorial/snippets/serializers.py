@@ -3,33 +3,34 @@ from django.contrib.auth.models import User
 from snippets.models import Snippet
 
 
-class SnippetSerializer(serializers.ModelSerializer):
+class SnippetSerializer(serializers.HyperlinkedModelSerializer):
+    owner = serializers.ReadOnlyField(source='owner.username')
+    highlight = serializers.HyperlinkedIdentityField(
+        view_name='snippet-highlight',
+        format='html'
+    )
+
     class Meta:
         model = Snippet
-        fields = ('id',
+        fields = ('url',
+                  'highlight',
+                  'owner',
                   'title',
                   'code',
                   'line_numbered',
                   'language',
-                  'style',
-                  'owner')
-
-    # snippets are associated with owners
-    owner = serializers.ReadOnlyField(source='owner.username')
+                  'style')
 
 
-class UserSerializer(serializers.ModelSerializer):
-    """Represent users in API."""
-    snippets = serializers.PrimaryKeyRelatedField(
-        many=True,
-        queryset=Snippet.objects.all()
-    )
+class UserSerializer(serializers.HyperlinkedModelSerializer):
+    snippets = serializers.HyperlinkedRelatedField(many=True,
+                                                   view_name='snippet-detail',
+                                                   read_only=True)
 
     class Meta:
         model = User
         """
         'snippets' is a reverse relationship on user model, and will not be
         included by default. We must add an explicit field for it.
-
         """
-        fields = ('id', 'username', 'snippets')
+        fields = ('url', 'username', 'snippets')
